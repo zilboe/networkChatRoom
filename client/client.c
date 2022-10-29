@@ -8,13 +8,16 @@ void *pthread_recv(void *arg)
     while (1)
     {
         int ret = recv(sockfd, &msg, sizeof(msg), 0);
-        if (msg.type == 1)
+        if (ret > 0)
         {
-            printf("客户端(%s:%d):%s\n", inet_ntoa(msg.cli.client.sin_addr), ntohs(msg.cli.client.sin_port), msg.message);
-        }
-        else
-        {
-            printf("%s\n", msg.message);
+            if (msg.type == 1)
+            {
+                printf("客户端(%s:%d):%s\n", inet_ntoa(msg.cli.client.sin_addr), ntohs(msg.cli.client.sin_port), msg.message);
+            }
+            else
+            {
+                printf("%s\n", msg.message);
+            }
         }
     }
 }
@@ -49,15 +52,15 @@ int main()
     serverSock.sin_family = AF_INET;
 
     connect(sockfd, (struct sockaddr *)&serverSock, serverLen);
-    printf ("=====欢迎加入聊天室=====\n");
-    printf ("  退出服务器请输入quit  \n");
+    printf("=====欢迎加入聊天室=====\n");
+    printf("  退出服务器请输入quit  \n");
     msg_t msg;
     bzero(&msg, 0);
     pthread_t pthreadSend;
     pthread_create(&pthreadSend, NULL, pthread_send, NULL);
     pthread_t pthreadRecv;
     pthread_create(&pthreadRecv, NULL, pthread_recv, NULL);
-    while (!quit);
-    close(sockfd);
+    while (!quit)
+        ;
     return 0;
 }
