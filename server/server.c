@@ -2,85 +2,31 @@
 msg_t phead;
 int sockfd;
 
-// void delNodeFromList(msg_t *list, cli_t *pNode)
-// {
-//     if (pNode == NULL || list == NULL)
-//     {
-//         perror("list is null\n");
-//         return;
-//     }
-//     if (list->size == 0 || list->cli.next == NULL)
-//     {
-//         return;
-//     }
-//     cli_t *p = list->cli.next;
-//     if (p->next == NULL)
-//     {
-//         if (p->fd != pNode->fd)
-//         {
-//             return;
-//         }
-//         else
-//         {
-//             list->cli.next = NULL;
-//             free(p);
-//             p = NULL;
-//             return;
-//         }
-//     }
-//     else if (p->next->next == NULL)
-//     {
-//         if (p->fd == pNode->fd)
-//         {
-//             list->cli.next = p->next;
-//             p->next = NULL;
-//             free(p);
-//             p = NULL;
-//         }
-//         else if (p->next->fd == pNode->fd)
-//         {
-//             cli_t *pDel = p->next;
-//             p->next = NULL;
-//             free(pDel);
-//             pDel = NULL;
-//         }
-//         else
-//         {
-//         }
-//         return;
-//     }
-//     else
-//     {
-//         while (p->next != NULL)
-//         {
-//             if (list->cli.next == p)
-//             {
-//                 if (p->fd == pNode->fd)
-//                 {
-//                     cli_t *pDel = p;
-//                     p = p->next;
-//                     list->cli.next = p;
-//                     free(pDel);
-//                     pDel = NULL;
-//                     break;
-//                 }
-//             }
-//             else if (p->next->fd == pNode->fd)
-//             {
-//                 if (p->next)
-//                 cli_t *pDel = p->next;
-//                 p->next = pDel->next;
-//                 free(pDel);
-//                 pDel = NULL;
-//             }
-//             p = p->next;
-//         }
-//     }
-// }
+void delNodeFromList(msg_t *phead, int fd)
+{
+    if (phead == NULL)
+        return;
+    cli_t *p = &phead->cli;
+    cli_t *pDel = NULL;
+    while (p->next != NULL)
+    {
+        if (p->next->fd == fd)
+        {
+            pDel = p->next;
+            break;
+        }
+        p = p->next;
+    }
+    p->next = pDel->next;
+    pDel->next = NULL;
+    free(pDel);
+    pDel = NULL;
+}
 
 void *pthread_common(void *arg)
 {
     cli_t *pNode = (cli_t *)arg;
+    printf("客户端(%s:%d)加入聊天室\n", inet_ntoa(pNode->client.sin_addr), ntohs(pNode->client.sin_port));
     if (phead.size > 1)
     {
         cli_t *p = &phead.cli;
@@ -102,47 +48,35 @@ void *pthread_common(void *arg)
         msg_t msgs;
         bzero(&msgs, 0);
         int ret = recv(pNode->fd, &msgs, sizeof(msgs), 0);
+        pthread_mutex_lock(&pNode->lock);
         if (ret > 0)
         {
             if (!strcmp("quit", msgs.message))
             {
+                pthread_mutex_unlock(&pNode->lock);
                 phead.size--;
                 msgs.type = 0;
+                printf("客户端(%s:%d)退出聊天室", inet_ntoa(pNode->client.sin_addr), ntohs(pNode->client.sin_port));
                 sprintf(msgs.message, "客户端(%s:%d)退出聊天室", inet_ntoa(pNode->client.sin_addr), ntohs(pNode->client.sin_port));
                 cli_t *p = &phead.cli;
-                cli_t *pDel = NULL;
                 while (p->next != NULL)
                 {
                     p = p->next;
                     if (p->fd == pNode->fd)
                     {
-                        pDel = p;
                         continue;
                     }
                     send(p->fd, &msgs, sizeof(msgs), 0);
                 }
-                p = &phead.cli;
-                while (p->next!=pDel) // p节点跑到删除节点前一节点
-                    p = p->next;
-                if (pDel->next!=NULL)
-                {
-                    cli_t *pNext = pDel->next;
-                    p->next = pNext;
-                    free(pDel);
-                    pDel = NULL;
-                }
-                else
-                {
-                    p->next = NULL;
-                    free(pDel);
-                    pDel = NULL;
-                }
-                // delNodeFromList(&phead, pNode);
+                delNodeFromList(&phead, pNode->fd);
+                close(pNode->fd);
+                pthread_cancel(pthread_self());
                 bzero(&msgs, 0);
                 break;
             }
             else
             {
+                pthread_mutex_unlock(&pNode->lock);
                 msgs.cli = *pNode;
                 cli_t *p = &phead.cli;
                 msgs.type = 1;
@@ -154,6 +88,29 @@ void *pthread_common(void *arg)
                     send(p->fd, &msgs, sizeof(msgs), 0);
                 }
             }
+        }
+        else
+        {
+            pthread_mutex_unlock(&pNode->lock);
+            phead.size--;
+            msgs.type = 0;
+            printf("客户端(%s:%d)意外退出聊天室", inet_ntoa(pNode->client.sin_addr), ntohs(pNode->client.sin_port));
+            sprintf(msgs.message, "客户端(%s:%d)意外退出聊天室", inet_ntoa(pNode->client.sin_addr), ntohs(pNode->client.sin_port));
+            cli_t *p = &phead.cli;
+            while (p->next != NULL)
+            {
+                p = p->next;
+                if (p->fd == pNode->fd)
+                {
+                    continue;
+                }
+                send(p->fd, &msgs, sizeof(msgs), 0);
+            }
+            delNodeFromList(&phead, pNode->fd);
+            pthread_cancel(pthread_self());
+            close(pNode->fd);
+            bzero(&msgs, 0);
+            break;
         }
     }
 }
@@ -181,14 +138,9 @@ void *pthread_accept(void *arg)
             phead.cli.next = pNode;
         }
         phead.size++;
-        cli_t *p = &phead.cli;
-        while (p->next != NULL)
-        {
-            p = p->next;
-            printf("id = %d\n", p->fd);
-        }
         pthread_t commonPthread;
         pthread_create(&commonPthread, NULL, pthread_common, (void *)pNode);
+        pthread_detach(commonPthread);
     }
 }
 int main()
@@ -207,6 +159,5 @@ int main()
     pthread_create(&acceptPthread, NULL, pthread_accept, NULL);
     while (1)
         ;
-
     return 0;
 }
