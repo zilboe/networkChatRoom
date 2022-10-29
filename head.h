@@ -22,6 +22,7 @@
 #endif
 typedef struct client
 {
+    pthread_mutex_t lock;
     struct sockaddr_in client;
     int fd;
     struct client *next;
