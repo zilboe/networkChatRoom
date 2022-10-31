@@ -19,6 +19,10 @@ void *pthread_recv(void *arg)
                 printf("%s\n", msg.message);
             }
         }
+        else if (ret == 0)
+        {
+            printf ("%s\n", msg.message);
+        }
     }
 }
 
