@@ -22,7 +22,6 @@
 #endif
 typedef struct client
 {
-    pthread_mutex_t lock;
     struct sockaddr_in client;
     int fd;
     struct client *next;
@@ -30,11 +29,14 @@ typedef struct client
 
 typedef struct msg
 {
+    pthread_mutex_t lock;
     char message[512];
     int type;//用来检测是否第一次登陆数据
     cli_t cli;
     int size;
 }msg_t;
+
+#define SQLName "sqlite.db"
 
 #ifndef true
 #define true 1

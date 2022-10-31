@@ -48,12 +48,11 @@ void *pthread_common(void *arg)
         msg_t msgs;
         bzero(&msgs, 0);
         int ret = recv(pNode->fd, &msgs, sizeof(msgs), 0);
-        pthread_mutex_lock(&pNode->lock);
+        pthread_mutex_lock(&phead.lock);
         if (ret > 0)
         {
             if (!strcmp("quit", msgs.message))
             {
-                pthread_mutex_unlock(&pNode->lock);
                 phead.size--;
                 msgs.type = 0;
                 printf("客户端(%s:%d)退出聊天室", inet_ntoa(pNode->client.sin_addr), ntohs(pNode->client.sin_port));
@@ -68,6 +67,7 @@ void *pthread_common(void *arg)
                     }
                     send(p->fd, &msgs, sizeof(msgs), 0);
                 }
+                pthread_mutex_unlock(&phead.lock);
                 delNodeFromList(&phead, pNode->fd);
                 close(pNode->fd);
                 pthread_cancel(pthread_self());
@@ -76,7 +76,6 @@ void *pthread_common(void *arg)
             }
             else
             {
-                pthread_mutex_unlock(&pNode->lock);
                 msgs.cli = *pNode;
                 cli_t *p = &phead.cli;
                 msgs.type = 1;
@@ -87,11 +86,11 @@ void *pthread_common(void *arg)
                         continue;
                     send(p->fd, &msgs, sizeof(msgs), 0);
                 }
+                pthread_mutex_unlock(&phead.lock);
             }
         }
         else
         {
-            pthread_mutex_unlock(&pNode->lock);
             phead.size--;
             msgs.type = 0;
             printf("客户端(%s:%d)意外退出聊天室", inet_ntoa(pNode->client.sin_addr), ntohs(pNode->client.sin_port));
@@ -106,6 +105,7 @@ void *pthread_common(void *arg)
                 }
                 send(p->fd, &msgs, sizeof(msgs), 0);
             }
+            pthread_mutex_unlock(&phead.lock);
             delNodeFromList(&phead, pNode->fd);
             pthread_cancel(pthread_self());
             close(pNode->fd);
