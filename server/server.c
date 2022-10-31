@@ -55,8 +55,8 @@ void *pthread_common(void *arg)
             {
                 phead.size--;
                 msgs.type = 0;
-                printf("客户端(%s:%d)退出聊天室", inet_ntoa(pNode->client.sin_addr), ntohs(pNode->client.sin_port));
-                sprintf(msgs.message, "客户端(%s:%d)退出聊天室", inet_ntoa(pNode->client.sin_addr), ntohs(pNode->client.sin_port));
+                printf("客户端(%s:%d)退出聊天室\n", inet_ntoa(pNode->client.sin_addr), ntohs(pNode->client.sin_port));
+                sprintf(msgs.message, "客户端(%s:%d)退出聊天室\n", inet_ntoa(pNode->client.sin_addr), ntohs(pNode->client.sin_port));
                 cli_t *p = &phead.cli;
                 while (p->next != NULL)
                 {
@@ -93,8 +93,8 @@ void *pthread_common(void *arg)
         {
             phead.size--;
             msgs.type = 0;
-            printf("客户端(%s:%d)意外退出聊天室", inet_ntoa(pNode->client.sin_addr), ntohs(pNode->client.sin_port));
-            sprintf(msgs.message, "客户端(%s:%d)意外退出聊天室", inet_ntoa(pNode->client.sin_addr), ntohs(pNode->client.sin_port));
+            printf("客户端(%s:%d)意外退出聊天室\n", inet_ntoa(pNode->client.sin_addr), ntohs(pNode->client.sin_port));
+            sprintf(msgs.message, "客户端(%s:%d)意外退出聊天室\n", inet_ntoa(pNode->client.sin_addr), ntohs(pNode->client.sin_port));
             cli_t *p = &phead.cli;
             while (p->next != NULL)
             {
