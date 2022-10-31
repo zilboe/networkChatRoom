@@ -10,7 +10,7 @@ void *pthread_recv(void *arg)
         int ret = recv(sockfd, &msg, sizeof(msg), 0);
         if (ret > 0)
         {
-            if (msg.type == 1)
+            if (msg.type == 1 && strlen(msg.message) > 0)
             {
                 printf("客户端(%s:%d):%s\n", inet_ntoa(msg.cli.client.sin_addr), ntohs(msg.cli.client.sin_port), msg.message);
             }
@@ -35,6 +35,8 @@ void *pthread_send(void *arg)
         scanf("%s", msg.message);
         if (getchar() == '\n' && msg.message[0] != '\n')
         {
+            int len = strlen(msg.message);
+            msg.message[len+1] = '\0';
             send(sockfd, &msg, sizeof(msg), 0);
             if (!strcmp(msg.message, "quit"))
             {
