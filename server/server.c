@@ -70,8 +70,8 @@ void *pthread_common(void *arg)
                 pthread_mutex_unlock(&phead.lock);
                 delNodeFromList(&phead, pNode->fd);
                 close(pNode->fd);
-                pthread_cancel(pthread_self());
                 bzero(&msgs, 0);
+                pthread_exit(NULL);
                 break;
             }
             else
@@ -107,9 +107,9 @@ void *pthread_common(void *arg)
             }
             pthread_mutex_unlock(&phead.lock);
             delNodeFromList(&phead, pNode->fd);
-            pthread_cancel(pthread_self());
             close(pNode->fd);
             bzero(&msgs, 0);
+            pthread_exit(NULL);
             break;
         }
     }
@@ -148,7 +148,7 @@ int main()
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     struct sockaddr_in serverSock;
     socklen_t serverLen = sizeof(struct sockaddr_in);
-    serverSock.sin_addr.s_addr = htonl(INADDR_ANY);
+    serverSock.sin_addr.s_addr = inet_addr(IP);
     serverSock.sin_port = htons(PORT);
     serverSock.sin_family = AF_INET;
     bind(sockfd, (struct sockaddr *)&serverSock, serverLen);
