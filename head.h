@@ -12,7 +12,7 @@
 #include <netinet/ip.h>
 #include <netinet/ip.h>
 #include <pthread.h>
-#define IP "123.57.209.75"
+#define IP "127.0.0.1"
 #define PORT 5212
 
 #ifndef BOOL
