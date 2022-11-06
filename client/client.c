@@ -22,6 +22,7 @@ void *pthread_recv(void *arg)
         else if (ret == 0)
         {
             printf ("%s\n", msg.message);
+            pthread_exit(NULL);
         }
     }
 }
@@ -42,6 +43,7 @@ void *pthread_send(void *arg)
             {
                 quit = true;
                 break;
+                pthread_exit(NULL);
             }
             memset(msg.message, 0, sizeof(msg.message));
         }
@@ -60,13 +62,14 @@ int main()
     connect(sockfd, (struct sockaddr *)&serverSock, serverLen);
     printf("=====欢迎加入聊天室=====\n");
     printf("  退出服务器请输入quit  \n");
-    msg_t msg;
-    bzero(&msg, 0);
     pthread_t pthreadSend;
     pthread_create(&pthreadSend, NULL, pthread_send, NULL);
     pthread_t pthreadRecv;
     pthread_create(&pthreadRecv, NULL, pthread_recv, NULL);
     while (!quit)
         ;
+    // close(sockfd);
+    // pthread_join(pthreadRecv, NULL);
+    // pthread_join(pthreadSend, NULL);
     return 0;
 }
